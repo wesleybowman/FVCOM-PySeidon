@@ -1,6 +1,5 @@
-#from __future__ import division
-#import netCDF4 as nc
-#import numpy as np
+from __future__ import division
+import numpy as np
 import scipy.spatial
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -9,8 +8,38 @@ import matplotlib.ticker as ticker
 import seaborn
 
 class shortest_element_path:
-    def __init__(self, lonc, latc, lon, lat, nv, h):
+    '''
+Description:
+----------
+A class/structure using FVCOM data to construct a path across the centers of
+the grid provided by the FVCOM class.
 
+Inputs:
+------
+
+ind = [-66.3419, -66.3324, 44.2755, 44.2815]
+
+test = FVCOM(filename, ax=ind)
+
+path = shortest_element_path(test.latc,test.lonc,test.lat,test.lon,test.nv,test.h)
+
+elements, coordinates = path.getTargets([[41420,39763],[48484,53441],
+                                        [27241,24226],[21706,17458]])
+
+path.graphGrid(plot=True)
+
+
+Options:
+-------
+debug = True will print out a lot of useful information.
+
+Notes:
+-----
+
+'''
+    def __init__(self, lonc, latc, lon, lat, nv, h, debug=False):
+
+        self.debug = debug
         #self.data = nc.Dataset(filename,'r')
 
         #latc = self.data.variables['latc'][:]
@@ -22,9 +51,7 @@ class shortest_element_path:
         self.nv = nv
         self.h = h
 
-        #z = np.vstack((latc,lonc)).T
         z = np.vstack((lonc,latc)).T
-        #z = np.vstack((xc, yc)).T
 
         self.points = map(tuple,z)
 
@@ -74,6 +101,11 @@ class shortest_element_path:
         self.pointIDXY = dict(zip(range(len(self.points)), self.points))
 
     def getTargets(self, source_target, coords=False):
+        ''' getTargets takes in a source_target. This can be in the form of
+        actual coordinates or indexes that correspond to coordinates. If
+        coords=True, then the source_target needs to be in EXACT coordinates.
+        The suggestion method would be to run closest_point on the coordinates
+        that are wanted, and then pass the indexes into source_target'''
 
         self.elements = []
         self.coordinates = []
@@ -83,13 +115,16 @@ class shortest_element_path:
             source = i[0]
             target = i[1]
 
-#            print '\n'
-#            print 'Source'
-#            print source
+            if self.debug:
+                print '\n'
+                print 'Source'
+                print source
+
             s = source
 #
-#            print 'Target'
-#            print target
+            if self.debug:
+                print 'Target'
+                print target
             t = target
 
             if coords:
@@ -108,15 +143,16 @@ class shortest_element_path:
             shortest = nx.shortest_path(self.graph,source=s,target=t,weight='weight')
 #            dist = nx.shortest_path_length(self.graph,source=s,target=t,weight='weight')
 
-#            print 'Shortest Path (by elements)'
-#            print shortest
+            if self.debug:
+                print 'Shortest Path (by elements)'
+                print shortest
 
             self.elements.append(shortest)
 
             coords = [self.pointIDXY[i] for i in shortest]
             self.coordinates.append(coords)
-            self.maxcoordinates.append(np.max(np.array(coords),axis=0))
-            self.mincoordinates.append(np.min(np.array(coords),axis=0))
+            self.maxcoordinates.append(np.max(np.array(coords), axis=0))
+            self.mincoordinates.append(np.min(np.array(coords), axis=0))
 
 #            print 'Shortest Distance (by coordinates)'
 #            print dist
@@ -124,13 +160,12 @@ class shortest_element_path:
         return self.elements, self.coordinates
 
     def graphGrid(self,narrowGrid=False, plot=False):
-        #nx.draw(self.graph, self.pointIDXY)
-        #plt.show()
-
-        #lat = self.data.variables['lat'][:]
-        #lon = self.data.variables['lon'][:]
-        #nv = self.data.variables['nv'][:].T -1
-        #h = self.data.variables['h'][:]
+        ''' A method to graph the grid with the shortest path plotted on the
+        grid. narrowGrid will limit the field of view down to only show the
+        paths drawn and not the entire grid. If only one path is drawn, this
+        can skew the way the grid looks, and is sometime better to view the
+        whole grid and zoom in. The plot option is in cause you want to choose
+        when to plot the graph in a different part of the code.'''
         lat = self.lat
         lon = self.lon
         nv = self.nv.T - 1
@@ -174,9 +209,7 @@ class shortest_element_path:
             plt.scatter(self.lonc[v], self.latc[v],
                         s=80, label=lab, c=plt.cm.Set1(i/zz))
 
-        #plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=2, ncol=3,fontsize='14', borderaxespad=0.)
         plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=2, ncol=3)
-        #plt.legend()
         if plot:
             plt.show()
 
